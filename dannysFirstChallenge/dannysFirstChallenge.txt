@@ -71,3 +71,14 @@ on m.customer_id=s.customer_id
 where m.customer_id in('A', 'B')
 and s.order_date<='2021-01-31'
 group by 1
+
+--Bonus question 2)
+select *, 
+	rank() over(partition by customer_id order by order_date) ranking
+from derived_table
+where member = 'Y'
+Union 
+select *, NULL as ranking
+from derived_table
+where member = 'N'
+order by customer_id, order_date

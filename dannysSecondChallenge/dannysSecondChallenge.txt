@@ -1,0 +1,87 @@
+--fixing unconsistent data for the tables customer_orders and runner_orders
+A)update customer_orders
+set exclusions = null
+where exclusions in ('null','');
+B)update customer_orders
+set extras = null
+where extras in ('null','');
+C)update runner_orders
+set pickup_time=null
+where pickup_time = 'null'
+D)update customer_orders
+set distance=replace(distance,'km','')
+E)update runner_orders
+set distance=Null
+where distance='null'
+F)update runner_orders
+set duration=replace(duration, 'minutes','')
+G)update runner_orders
+set duration=replace(duration, 'min','')
+H)update runner_orders
+set duration=trim(duration)
+I)update runner_orders
+set duration=Null
+where duration ='null'
+J)update runner_orders
+set cancellation=Null
+where cancellation in('null','')
+--A. Pizza Metrics
+1)How many pizzas were ordered?
+select count(pizza_id)
+from customer_orders
+--2)How many unique customer orders were made?
+select count(distinct order_id)
+from customer_orders
+--3)How many orders delivered by each runner? 
+select  runner_id,count(runner_id)
+from runner_orders
+where cancellation is null
+group by 1
+4)How many of each type of pizza was delivered?
+select pizza_id,count(pizza_id)
+from runner_orders r
+join customer_orders c
+on c.order_id=r.order_id
+where r.cancellation is null
+group by 1
+5)How many Vegetarian and Meatlovers were ordered by each customer?
+select c.customer_id, pn.pizza_name, count(*)
+from customer_orders c
+join pizza_names pn
+on pn.pizza_id=c.pizza_id
+group by 1, 2
+order by 1
+6)What was the maximum number of pizzas delivered in a single order?
+select r.order_id, count(c.pizza_id)
+from customer_orders c
+join runner_orders r
+on r.order_id=c.order_id
+where r.cancellation is null
+group by 1
+order by 2 desc
+limit 1
+7)For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+select c.customer_id,
+sum(case
+	when c.exclusions is null and c.extras is null then 1
+	else 0 end) as nochange,
+sum(case
+   	when c.exclusions is not null or c.extras is not null then 1
+   	else 0 end) as change
+from runner_orders r
+join customer_orders c on
+c.order_id=r.order_id and r.cancellation is null
+group by 1
+--8)How many pizzas were delivered that had both exclusions and extras?
+select count(*)
+from runner_orders r
+join customer_orders c
+--9)What was the total volume of pizzas ordered for each hour of the day?
+select count(pizza_id), date_part('hour', order_time)
+from customer_orders
+group by 2
+on c.order_id=r.order_id and r.duration is null and c.exclusions is not null and c.extras is not null
+--10)What was the volume of orders for each day of the week?
+select count(pizza_id), date_part('DOW', order_time)
+from customer_orders
+group by 2
