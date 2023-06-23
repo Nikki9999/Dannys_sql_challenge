@@ -85,3 +85,71 @@ on c.order_id=r.order_id and r.duration is null and c.exclusions is not null and
 select count(pizza_id), date_part('DOW', order_time)
 from customer_orders
 group by 2
+--B)Runner and Customer Experience
+--1)How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
+select count( distinct runner_id),date_part('week', order_time)
+from runner_orders r
+join customer_orders c
+on c.order_id=r.order_id
+group by 2
+--2)What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+select runner_id, round(avg(date_part('minute', pickup_time:: timestamp -order_time:: timestamp)):: numeric,1)
+from runner_orders r
+join customer_orders c
+on c.order_id=r.order_id
+group by 1
+--3)Is there any relationship between the number of pizzas and how long the order takes to prepare?
+select r.order_id, count(c.pizza_id) pizza_count, round((sum(date_part('minute', pickup_time:: timestamp -order_time:: timestamp)):: numeric),1) total_sum
+from runner_orders r
+join customer_orders c
+on c.order_id=r.order_id
+group by r.order_id
+order by pizza_count desc, total_sum desc
+--if more number of pizzas were ordered, more time it will take
+--4)What was the average distance travelled for each customer?
+select c.customer_id, round(avg(r.distance)::numeric, 1) as avg_distance
+from customer_orders c
+join runner_orders r
+on c.order_id=r.order_id and r.distance is not null
+group by 1
+--5)what was the difference between the longest and shortest delivery times for all orders?
+select Max(date_part('minute', pickup_time::timestamp-order_time))-MIN(date_part('minute', pickup_time::timestamp-order_time)) as max_diff
+from customer_orders c
+join runner_orders r
+on c.order_id=r.order_id and r.distance is not null
+--6)What was the average speed for each runner for each delivery and do you notice any trend for these values?
+select r.order_id, runner_id, round((distance *60/duration) :: numeric, 1)
+from runner_orders r 
+where distance is not null
+--7)What is the successful delivery percentage for each runner?
+select runner_id, round((count(distance):: float)/count(runner_Id)* 100) as percent
+from runner_orders
+group by runner_id
+--C)Ingredient Optimisation
+--1)What are the standard ingredients for each pizza?
+with cte as(
+select pizza_id, unnest(string_to_array(toppings,',')) ::integer as toppings_id 
+	from pizza_recipes
+)
+
+select pizza_name, string_agg(topping_name,',') as toppings_name
+from cte c
+join pizza_names pn
+on c.pizza_id=pn.pizza_id
+join pizza_toppings pt
+on pt.topping_id=c.toppings_id
+group by 1
+--2)What was the most commonly added extra?
+with cte1 as(
+select  unnest(string_to_array(extras,',')) :: integer as extra_toppings
+from customer_orders co
+
+)
+select topping_name
+from (select cte1.extra_toppings, pt.topping_name, count(*)
+from cte1
+join pizza_toppings pt
+on cte1.extra_toppings =pt.topping_id
+group by 1,2
+order by 3 desc
+limit 1) a
