@@ -143,7 +143,6 @@ group by 1
 with cte1 as(
 select  unnest(string_to_array(extras,',')) :: integer as extra_toppings
 from customer_orders co
-
 )
 select topping_name
 from (select cte1.extra_toppings, pt.topping_name, count(*)
@@ -153,3 +152,15 @@ on cte1.extra_toppings =pt.topping_id
 group by 1,2
 order by 3 desc
 limit 1) a
+--3)What was the most common exclusion?
+with cte as(select topping_id
+			from (select unnest(string_to_array(exclusions,',')):: integer as topping_id
+from customer_orders) a 
+group by 1
+order by count(*) desc
+limit 1)
+
+select topping_name
+from pizza_toppings
+where topping_id in (select topping_id from cte)
+--4)Generate an order item for each record in the customers_orders table in the format of one of the following:
