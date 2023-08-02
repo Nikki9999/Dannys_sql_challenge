@@ -2,3 +2,46 @@
 --1)How many customers has Foodie-Fi ever had?
 select count(distinct customer_id) as cust_count
 from subscriptions
+--2)What is the monthly distribution of trial plan start_date values for our dataset - use the start of the month as the group by value
+select count(plan_id) as plan_count ,date_trunc('Month', start_date) :: date as month_num
+from subscriptions
+where plan_id=0
+group by 2
+order by 2
+--3)What plan start_date values occur after the year 2020 for our dataset? Show the breakdown by count of events for each plan_name
+select plan_name, count(*)
+from plans p
+join subscriptions s
+on p.plan_id=s.plan_id
+where s.start_date>'2020-12-31'
+group by 1
+order by 2
+--4)What is the customer count and percentage of customers who have churned rounded to 1 decimal place?
+select plan_name,count(distinct customer_id) as churn_count, round((count(distinct customer_id)/(select count(distinct customer_id )::numeric from subscriptions )*100),1) as churn_percent
+from subscriptions s
+join plans p 
+on p.plan_id=s.plan_id
+where p.plan_id=4
+group by 1
+--5)How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?
+--6)What is the number and percentage of customer plans after their initial free trial?
+with cte1 as (select count(*)
+from subscriptions
+where plan_id in (1, 2, 3, 4)),
+cte2 as (select count(*)
+from subscriptions
+where plan_id in (1,2,3))
+
+select cte2.count as total_num, round((cte2.count/cte1.count::numeric)*100,2) as num_percent
+from cte1, cte2
+--7)What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
+--8)How many customers have upgraded to an annual plan in 2020?
+select count(*)
+from subscriptions
+where plan_id=3 and start_date between '2020-01-01' and '2020-12-31'
+--9)How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
+select round(avg(s2.start_date - s1.start_date)) as avg_time
+from subscriptions s1
+join subscriptions s2
+on s1.customer_id=s2.customer_id and s2.plan_id=3 and s1.plan_id=0
+--10)
