@@ -44,4 +44,10 @@ select round(avg(s2.start_date - s1.start_date)) as avg_time
 from subscriptions s1
 join subscriptions s2
 on s1.customer_id=s2.customer_id and s2.plan_id=3 and s1.plan_id=0
---10)
+--10)Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
+--11)How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
+select count(*)
+from subscriptions s1
+join subscriptions s2
+on s1.customer_id=s2.customer_id and s2.start_date>s1.start_date and s1.plan_id=2 and s1.plan_id=1
+where s2.start_date between  '2020-01-01' and '2020-12-31' 
